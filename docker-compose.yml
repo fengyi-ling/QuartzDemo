@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+  mysql:
+    image: mysql:8.0
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_USER: 'fengyi'
+      MYSQL_PASSWORD: 'fengyi'
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: 'quartznet'
+    ports:
+      - '3306:3306'  
+
+volumes:
+  mysql-data:
