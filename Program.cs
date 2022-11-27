@@ -7,19 +7,21 @@ builder.Services.Configure<QuartzOptions>(builder.Configuration.GetSection("Quar
 builder.Services.AddQuartz(q =>
 {
     q.UseMicrosoftDependencyInjectionJobFactory();
-    var helloJobKey = new JobKey("HelloProgram");
+    var helloJobKey = new JobKey("hello", "program");
     q.AddJob<HelloJob>(opts => opts.WithIdentity(helloJobKey));
     q.AddTrigger(opts => opts
         .ForJob(helloJobKey)
-        .WithIdentity("program-trigger")
-        .WithCronSchedule("*/5 * * * * ?"));
+        .WithIdentity("program-trigger", "program")
+        .WithCronSchedule("*/30 * * * * ?"));
 });
 builder.Services.AddQuartzHostedService(opt => { opt.WaitForJobsToComplete = true; });
-var webApplication = builder.Build();
+builder.Services.AddControllers();
 
-var schedulerFactory = webApplication.Services.GetRequiredService<ISchedulerFactory>();
+var app = builder.Build();
+var schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
 var scheduler = await schedulerFactory.GetScheduler();
 await scheduler.Start();
 
-webApplication.UseRouting();
-webApplication.Run();
+
+app.MapControllers();
+app.Run();
