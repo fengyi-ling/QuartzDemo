@@ -6,9 +6,10 @@ using QuartzDemo.Dto;
 namespace QuartzDemo.Controller
 {
     [ApiController]
-    [Route("triggers")]
-    public class TriggerController : ControllerBase
+    [Route("triggers/publish")]
+    public class PublishTriggerController : ControllerBase
     {
+        private const string PublishGroup = "publish";
         private readonly ISchedulerFactory _schedulerFactory;
 
         private readonly Dictionary<string, string> _domainToTopic = new()
@@ -19,7 +20,7 @@ namespace QuartzDemo.Controller
         };
 
 
-        public TriggerController(ISchedulerFactory schedulerFactory)
+        public PublishTriggerController(ISchedulerFactory schedulerFactory)
         {
             _schedulerFactory = schedulerFactory;
         }
@@ -28,8 +29,8 @@ namespace QuartzDemo.Controller
         public async Task<IActionResult> CreateTrigger([FromBody] PublishTriggerInfo publishTriggerInfo)
         {
             var cronTrigger = TriggerBuilder.Create()
-                .ForJob(new JobKey("publish", "program"))
-                .WithIdentity(publishTriggerInfo.Domain, publishTriggerInfo.Domain)
+                .ForJob(new JobKey(PublishGroup, PublishGroup))
+                .WithIdentity(publishTriggerInfo.Domain, PublishGroup)
                 .UsingJobData("domain", publishTriggerInfo.Domain)
                 .UsingJobData("topic", _domainToTopic[publishTriggerInfo.Domain])
                 .WithCronSchedule(publishTriggerInfo.CronExpression)
@@ -42,7 +43,7 @@ namespace QuartzDemo.Controller
         [HttpPatch]
         public async Task<IActionResult> UpdateTrigger([FromBody] PublishTriggerInfo publishTriggerInfo)
         {
-            var triggerKey = new TriggerKey(publishTriggerInfo.Domain, publishTriggerInfo.Domain);
+            var triggerKey = new TriggerKey(publishTriggerInfo.Domain, PublishGroup);
             var scheduler = await _schedulerFactory.GetScheduler();
             var originalTrigger = await scheduler.GetTrigger(triggerKey);
             if (originalTrigger == null)
@@ -60,7 +61,7 @@ namespace QuartzDemo.Controller
         [HttpDelete("{domain}")]
         public async Task<IActionResult> DeleteTrigger([FromRoute] string domain)
         {
-            var triggerKey = new TriggerKey(domain, domain);
+            var triggerKey = new TriggerKey(domain, PublishGroup);
             var scheduler = await _schedulerFactory.GetScheduler();
             var originalTrigger = await scheduler.GetTrigger(triggerKey);
             if (originalTrigger == null)
@@ -73,10 +74,10 @@ namespace QuartzDemo.Controller
         }
         
         [HttpGet]
-        public async Task<IActionResult> GetTriggers()
+        public async Task<IActionResult> GetAllTriggers()
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            var triggerKeys = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.AnyGroup());
+            var triggerKeys = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.GroupEquals(PublishGroup));
             var jobKeys = await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup());
             return Ok($"All jobs:\n{string.Join("\n\t", jobKeys)}\n" +
                       $"All triggers:\n{string.Join("\n", triggerKeys)}");
@@ -86,9 +87,9 @@ namespace QuartzDemo.Controller
         public async Task<IActionResult> DeleteAllTriggersJustForTest()
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            var originalTrigger = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.AnyGroup());
-            await scheduler.UnscheduleJobs(originalTrigger);
-            return Ok($"Successfully delete trigger {string.Join(",", originalTrigger)}");
+            var triggerKeys = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.GroupEquals(PublishGroup));
+            await scheduler.UnscheduleJobs(triggerKeys);
+            return Ok($"Successfully delete trigger {string.Join(",", triggerKeys)}");
         }
     }
 }

@@ -1,5 +1,4 @@
 using Quartz;
-using QuartzDemo;
 using QuartzDemo.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,20 +7,35 @@ builder.Services.Configure<QuartzOptions>(builder.Configuration.GetSection("Quar
 builder.Services.AddQuartz(q =>
 {
     q.UseMicrosoftDependencyInjectionJobFactory();
-    var publishJobKey = new JobKey("publish", "program");
+    
+    var publishJobKey = new JobKey("publish", "publish");
     q.AddJob<PublishJob>(opts => opts.WithIdentity(publishJobKey));
+    
+    var clearRecordJobKey = new JobKey("clear-record", "clear-record");
+    q.AddJob<ClearRecordJob>(opts => opts.WithIdentity(clearRecordJobKey));
+    
     q.AddTrigger(opts =>
     {
         const string domain = "static-domain";
         const string topic = "static-topic";
-        const string cronExpression = "*/30 * * * * ?";
         opts
             .ForJob(publishJobKey)
-            .WithIdentity(domain, topic)
+            .WithIdentity(domain, "publish")
             .UsingJobData("domain", domain)
             .UsingJobData("topic", topic)
-            .WithCronSchedule(cronExpression);
+            .WithCronSchedule("*/30 * * * * ?");
     });
+    
+    q.AddTrigger(opts =>
+    {
+        opts
+            .ForJob(clearRecordJobKey)
+            .WithIdentity("static-domain", "clear-record")
+            .UsingJobData("domain", "static-domain")
+            .UsingJobData("maxRetryAttempts", "3")
+            .WithCronSchedule("*/15 * * * * ?");
+    });
+    
 });
 builder.Services.AddQuartzHostedService(opt => { opt.WaitForJobsToComplete = true; });
 builder.Services.AddControllers();
