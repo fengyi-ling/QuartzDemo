@@ -11,15 +11,7 @@ namespace QuartzDemo.Controller
     {
         private const string PublishGroup = "publish";
         private readonly ISchedulerFactory _schedulerFactory;
-
-        private readonly Dictionary<string, string> _domainToTopic = new()
-        {
-            { "apple", "service.bus.apple" },
-            { "orange", "service.bus.orange" },
-            { "banana", "service.bus.banana" },
-        };
-
-
+        
         public PublishTriggerController(ISchedulerFactory schedulerFactory)
         {
             _schedulerFactory = schedulerFactory;
@@ -32,7 +24,6 @@ namespace QuartzDemo.Controller
                 .ForJob(new JobKey(PublishGroup, PublishGroup))
                 .WithIdentity(publishTriggerInfo.Domain, PublishGroup)
                 .UsingJobData("domain", publishTriggerInfo.Domain)
-                .UsingJobData("topic", _domainToTopic[publishTriggerInfo.Domain])
                 .WithCronSchedule(publishTriggerInfo.CronExpression)
                 .Build();
             var scheduler = await _schedulerFactory.GetScheduler();

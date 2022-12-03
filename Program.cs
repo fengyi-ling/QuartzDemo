@@ -20,12 +20,10 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts =>
     {
         const string domain = "orange";
-        const string topic = "orange";
         opts
             .ForJob(publishJobKey)
             .WithIdentity(domain, "publish")
             .UsingJobData("domain", domain)
-            .UsingJobData("topic", topic)
             .WithCronSchedule("*/50 * * * * ?");
     });
     
