@@ -1,5 +1,8 @@
 using Quartz;
+using QuartzDemo.Client;
 using QuartzDemo.Jobs;
+using QuartzDemo.Repository;
+using QuartzDemo.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 // This is very important, quartz will not be about to read from appsettings without this line
@@ -16,22 +19,22 @@ builder.Services.AddQuartz(q =>
     
     q.AddTrigger(opts =>
     {
-        const string domain = "static-domain";
-        const string topic = "static-topic";
+        const string domain = "orange";
+        const string topic = "orange";
         opts
             .ForJob(publishJobKey)
             .WithIdentity(domain, "publish")
             .UsingJobData("domain", domain)
             .UsingJobData("topic", topic)
-            .WithCronSchedule("*/30 * * * * ?");
+            .WithCronSchedule("*/50 * * * * ?");
     });
     
     q.AddTrigger(opts =>
     {
         opts
             .ForJob(clearRecordJobKey)
-            .WithIdentity("static-domain", "clear-record")
-            .UsingJobData("domain", "static-domain")
+            .WithIdentity("orange", "clear-record")
+            .UsingJobData("domain", "orange")
             .UsingJobData("maxRetryAttempts", "3")
             .WithCronSchedule("*/15 * * * * ?");
     });
@@ -39,6 +42,10 @@ builder.Services.AddQuartz(q =>
 });
 builder.Services.AddQuartzHostedService(opt => { opt.WaitForJobsToComplete = true; });
 builder.Services.AddControllers();
+
+builder.Services.AddSingleton<IReprocessRepository, ReprocessRepository>();
+builder.Services.AddSingleton<IEventHubClient, EventHubClient>();
+builder.Services.AddSingleton<IPublishJobService, PublishJobService>();
 
 var app = builder.Build();
 var schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
