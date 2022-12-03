@@ -16,7 +16,7 @@ public class PublishJob : IJob
     {
         var dataMap = context.MergedJobDataMap;
         var domain = dataMap.GetString("domain");
-        _publishJobService.Excecute(domain);
+        _publishJobService.Publish(domain);
         return Task.CompletedTask;
     }
 }

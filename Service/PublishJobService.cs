@@ -23,7 +23,7 @@ public class PublishJobService : IPublishJobService
         _repository = repository;
     }
 
-    public void Excecute(string domain)
+    public void Publish(string domain)
     {
         var topic = _domainToTopic[domain];
         var reprocesses = _repository.FindAllByDomainAndStatus(domain, false);
