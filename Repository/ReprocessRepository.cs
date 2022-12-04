@@ -1,4 +1,5 @@
 using QuartzDemo.Domain;
+using QuartzDemo.Jobs;
 
 namespace QuartzDemo.Repository;
 
@@ -32,6 +33,20 @@ public class ReprocessRepository : IReprocessRepository
             .Where(reprocess => reprocess.Status == status)
             .ToHashSet();
     }
+    
+    public ICollection<Reprocess> FindAllByStatus(bool status)
+    {
+        return _collection
+            .Where(reprocess => reprocess.Status == status)
+            .ToHashSet();
+    }
+    
+    public ICollection<Reprocess> FindAllByDomain(string domain)
+    {
+        return _collection
+            .Where(reprocess => reprocess.Domain == domain)
+            .ToHashSet();
+    }
 
     public void UpdateStatusById(int id, bool status)
     {
@@ -45,5 +60,11 @@ public class ReprocessRepository : IReprocessRepository
         var reprocess = _collection
             .First(reprocess => reprocess.Id == id);
         reprocess.RetryAttempt += 1;
+    }
+
+    public void DeleteById(int id)
+    {
+        _collection.RemoveWhere(reprocess => reprocess.Id == id);
+        Console.Out.Write(_collection);
     }
 }

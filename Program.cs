@@ -1,5 +1,6 @@
 using Quartz;
 using QuartzDemo.Client;
+using QuartzDemo.Controller;
 using QuartzDemo.Jobs;
 using QuartzDemo.Repository;
 using QuartzDemo.Service;
@@ -24,7 +25,7 @@ builder.Services.AddQuartz(q =>
             .ForJob(publishJobKey)
             .WithIdentity(domain, "publish")
             .UsingJobData("domain", domain)
-            .WithCronSchedule("*/50 * * * * ?");
+            .WithCronSchedule("1 0 * * * ?");
     });
     
     q.AddTrigger(opts =>
@@ -34,7 +35,7 @@ builder.Services.AddQuartz(q =>
             .WithIdentity("orange", "clear-record")
             .UsingJobData("domain", "orange")
             .UsingJobData("maxRetryAttempts", "3")
-            .WithCronSchedule("*/15 * * * * ?");
+            .WithCronSchedule("*/50 * * * * ?");
     });
     
 });
@@ -44,12 +45,15 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<IReprocessRepository, ReprocessRepository>();
 builder.Services.AddSingleton<IEventHubClient, EventHubClient>();
 builder.Services.AddSingleton<IPublishJobService, PublishJobService>();
+builder.Services.AddSingleton<IClearRecordJobService, ClearRecordJobService>();
+builder.Services.AddSingleton<IRetentionRepository, RetentionRepository>();
+builder.Services.AddSingleton<IClearRecordTriggerService, ClearRecordTriggerService>();
+builder.Services.AddSingleton<IPublishTriggerService, PublishTriggerService>();
 
 var app = builder.Build();
 var schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
 var scheduler = await schedulerFactory.GetScheduler();
 await scheduler.Start();
-
 
 app.MapControllers();
 app.Run();

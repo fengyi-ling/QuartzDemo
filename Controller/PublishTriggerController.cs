@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Quartz;
-using Quartz.Impl.Matchers;
 using QuartzDemo.Dto;
+using QuartzDemo.Service;
 
 namespace QuartzDemo.Controller
 {
@@ -9,78 +8,39 @@ namespace QuartzDemo.Controller
     [Route("triggers/publish")]
     public class PublishTriggerController : ControllerBase
     {
-        private const string PublishGroup = "publish";
-        private readonly ISchedulerFactory _schedulerFactory;
+        private readonly IPublishTriggerService _publishTriggerService;
         
-        public PublishTriggerController(ISchedulerFactory schedulerFactory)
+        public PublishTriggerController(IPublishTriggerService publishTriggerService)
         {
-            _schedulerFactory = schedulerFactory;
+            _publishTriggerService = publishTriggerService;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateTrigger([FromBody] PublishTriggerInfo publishTriggerInfo)
         {
-            var cronTrigger = TriggerBuilder.Create()
-                .ForJob(new JobKey(PublishGroup, PublishGroup))
-                .WithIdentity(publishTriggerInfo.Domain, PublishGroup)
-                .UsingJobData("domain", publishTriggerInfo.Domain)
-                .WithCronSchedule(publishTriggerInfo.CronExpression)
-                .Build();
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var dateTimeOffset = await scheduler.ScheduleJob(cronTrigger);
+            var dateTimeOffset = await _publishTriggerService.CreateTrigger(publishTriggerInfo);
             return Ok("next fire time: " + dateTimeOffset);
         }
 
         [HttpPatch]
         public async Task<IActionResult> UpdateTrigger([FromBody] PublishTriggerInfo publishTriggerInfo)
         {
-            var triggerKey = new TriggerKey(publishTriggerInfo.Domain, PublishGroup);
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var originalTrigger = await scheduler.GetTrigger(triggerKey);
-            if (originalTrigger == null)
-            {
-                return NotFound();
-            }
-
-            var newTrigger = originalTrigger.GetTriggerBuilder()
-                .WithCronSchedule(publishTriggerInfo.CronExpression)
-                .Build();
-            var dateTimeOffset = await scheduler.RescheduleJob(triggerKey, newTrigger);
+            var dateTimeOffset = await _publishTriggerService.UpdateTrigger(publishTriggerInfo);
             return Ok("next fire time: " + dateTimeOffset);
         }
 
-        [HttpDelete("{domain}")]
-        public async Task<IActionResult> DeleteTrigger([FromRoute] string domain)
-        {
-            var triggerKey = new TriggerKey(domain, PublishGroup);
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var originalTrigger = await scheduler.GetTrigger(triggerKey);
-            if (originalTrigger == null)
-            {
-                return NotFound();
-            }
-
-            await scheduler.UnscheduleJob(triggerKey);
-            return Ok($"Successfully delete trigger {triggerKey}");
-        }
-        
         [HttpGet]
         public async Task<IActionResult> GetAllTriggers()
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var triggerKeys = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.GroupEquals(PublishGroup));
-            var jobKeys = await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup());
-            return Ok($"All jobs:\n{string.Join("\n\t", jobKeys)}\n" +
-                      $"All triggers:\n{string.Join("\n", triggerKeys)}");
+            var triggerKeys = await _publishTriggerService.GetAllTriggers();
+            return Ok($"All triggers:\n{string.Join("\n", triggerKeys)}");
         }
-    
-        [HttpDelete]
-        public async Task<IActionResult> DeleteAllTriggersJustForTest()
+        
+        [HttpDelete("{domain}")]
+        public async Task<IActionResult> DeleteTrigger([FromRoute] string domain)
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var triggerKeys = await scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.GroupEquals(PublishGroup));
-            await scheduler.UnscheduleJobs(triggerKeys);
-            return Ok($"Successfully delete trigger {string.Join(",", triggerKeys)}");
+            var triggerKey = await _publishTriggerService.DeleteTrigger(domain);
+            return Ok($"Successfully delete trigger {triggerKey}");
         }
     }
 }
