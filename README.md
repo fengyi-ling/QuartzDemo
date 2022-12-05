@@ -1,6 +1,6 @@
 # QuartzDemo
 ### Recommend Structure
-see ./reprocess-architecture.jpg
+![structure](reprocess-architecture.jpg)
 
 ### From demo to production Code
 If need to apply to production code, still need to:
