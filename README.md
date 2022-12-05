@@ -8,5 +8,8 @@ If need to apply to production code, still need to:
 - 2.Should use real repository and eventhub client
 - 3.handle unhappy path, null reference situation
 - 4.lock the job if another are execute, because both jobs read and write from reprocess table
+- 5.misfire instruction, how should we do if one trigger is miss, we have two option: 
+  - DoNothing, which is just wait for the next time (recommend, because it is a cron job, has the next trigger time)
+  - FireOnceNow, fire at once
 
 
